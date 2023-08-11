@@ -31,10 +31,26 @@ RUN apt-get update && \
         python3-xlrd \
         python3-xlwt \
         xz-utils \
+        python3-pandas \
     && curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.buster_amd64.deb \
     && echo 'ea8277df4297afc507c61122f3c349af142f31e5 wkhtmltox.deb' | sha1sum -c - \
     && apt-get install -y --no-install-recommends ./wkhtmltox.deb \
     && rm -rf /var/lib/apt/lists/* wkhtmltox.deb
+
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+    curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y msodbcsql17 mssql-tools && \
+    apt-get install -y unixodbc-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install rtlcss (on Debian buster)
+RUN npm install -g rtlcss
+
+# Install python3 libs
+
+# Install paramiko==2.10.4 pyzk==0.9 pyzkaccess==1.0
+RUN pip3 install --no-cache-dir paramiko==2.10.4 pyzk==0.9 pyzkaccess==1.0
 
 # install latest postgresql-client
 RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
@@ -50,8 +66,9 @@ RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main' > /et
     && rm -f /etc/apt/sources.list.d/pgdg.list \
     && rm -rf /var/lib/apt/lists/*
 
-# Install rtlcss (on Debian buster)
-RUN npm install -g rtlcss
+# Install rtlcss on Ubuntu 20.04
+#RUN npm install -g rtlcss
+
 
 # Install Odoo
 ENV ODOO_VERSION 15.0
@@ -69,9 +86,13 @@ COPY ./odoo.conf /etc/odoo/
 
 # Set permissions and Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users addons
 RUN chown odoo /etc/odoo/odoo.conf \
-    && mkdir -p /mnt/extra-addons \
-    && chown -R odoo /mnt/extra-addons
-VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
+    && mkdir -p /mnt/namco_backend \
+    && mkdir -p /mnt/hr_project \
+    && mkdir -p /mnt/enterprise \
+    && chown -R odoo /mnt/namco_backend \
+    && chown -R odoo /mnt/enterprise \
+    && chown -R odoo /mnt/hr_project
+VOLUME ["/var/lib/odoo", "/mnt/namco_backend", "/mnt/hr_project", "/mnt/enterprise"]
 
 # Expose Odoo services
 EXPOSE 8069 8071 8072
